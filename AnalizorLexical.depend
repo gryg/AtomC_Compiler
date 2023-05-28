@@ -1,0 +1,38 @@
+# depslib dependency file v1.0
+1679918577 source:c:\program files\codeblocks\lftc\analizorlexical\lexer.c
+	<stdio.h>
+	<ctype.h>
+	<string.h>
+	<stdlib.h>
+	<math.h>
+	"lexer.h"
+	"utils.h"
+
+1679266311 c:\program files\codeblocks\lftc\analizorlexical\lexer.h
+
+1677424858 c:\program files\codeblocks\lftc\analizorlexical\utils.h
+	<stddef.h>
+	<stdnoreturn.h>
+
+1677420882 source:c:\program files\codeblocks\lftc\analizorlexical\utils.c
+	<stdio.h>
+	<stdlib.h>
+	<stdarg.h>
+	"utils.h"
+
+1684078920 source:c:\program files\codeblocks\lftc\analizorlexical\main.c
+	<stdio.h>
+	<stdlib.h>
+	"lexer.h"
+	"utils.h"
+
+1684077098 source:c:\program files\codeblocks\lftc\analizorlexical\parser.c
+	<stdio.h>
+	<stdlib.h>
+	<stdarg.h>
+	<stdbool.h>
+	"parser.h"
+
+1678677668 c:\program files\codeblocks\lftc\analizorlexical\parser.h
+	"lexer.h"
+
