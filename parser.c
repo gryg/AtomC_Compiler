@@ -1,18 +1,22 @@
 #include <stdio.h>
-
 #include <stdlib.h>
-
 #include <stdarg.h>
-
 #include <stdbool.h>
 
+
 #include "parser.h"
+#include "lexer.h"
+#include "ad.h"
+#include "utils.h"
+#include "at.h"
+
+Symbol* owner;
 
 Token* iTk; // the iterator in the tokens list
 Token* consumedTk; // the last consumed token
 bool expr();
 bool exprPostfix();
-bool stmCompound();
+bool stmCompound(bool newDomain);
 bool stm();
 
 void tkerr(const char* fmt, ...) {
@@ -34,46 +38,86 @@ bool consume(int code) {
     return false;
 }
 
-bool arrayDecl() {
+bool arrayDecl(Type* t) {
     Token* start = iTk;
     if (consume(LBRACKET)) {
-        if (consume(INT)) {}
+        if (consume(INT)) {
+            Token* tkSize = consumedTk;
+            t->n = tkSize->i;
+        }
+        else
+            t->n = 0;
         if (consume(RBRACKET)) {
             return true;
         }
         else
-            tkerr("Missing ] after array declaration\n");
+            tkerr("Missing ] or invalid expression inside [...]\n");
     }
     iTk = start;
     return false;
 }
 // typeBase: TYPE_INT | TYPE_DOUBLE | TYPE_CHAR | STRUCT ID
-bool typeBase() {
+bool typeBase(Type* t) {
+    t->n = -1;
+    Token* start = iTk;
 
     if (consume(TYPE_INT)) {
+        t->tb = TB_INT;
         return true;
     }
     if (consume(TYPE_DOUBLE)) {
+        t->tb = TB_DOUBLE;
         return true;
     }
     if (consume(TYPE_CHAR)) {
+        t->tb = TB_CHAR;
         return true;
     }
     if (consume(STRUCT)) {
         if (consume(ID)) {
+            Token* tkName = consumedTk;
+            t->tb = TB_STRUCT;
+            t->s = findSymbol(tkName->text);
+            if (!t->s)tkerr("Structure undefined: %s", tkName->text);
             return true;
         }
     }
-
+    iTk = start;
     return false;
 }
 
 bool varDef() {
+    Type t;
     Token* start = iTk;
-    if (typeBase()) {
+    if (typeBase(&t)) {
         if (consume(ID)) {
-            if (arrayDecl()) {}
+            Token* tkName = consumedTk;
+            if (arrayDecl(&t)) {
+                if (t.n == 0)tkerr("a vector variable must have a specified dimension");
+            }
+
             if (consume(SEMICOLON)) {
+                Symbol* var = findSymbolInDomain(symTable, tkName->text);
+                if (var)tkerr("symbol redefinition: %s", tkName->text);
+                var = newSymbol(tkName->text, SK_VAR);
+                var->type = t;
+                var->owner = owner;
+                addSymbolToDomain(symTable, var);
+                if (owner) {
+                    switch (owner->kind) {
+                    case SK_FN:
+                        var->varIdx = symbolsLen(owner->fn.locals);
+                        addSymbolToList(&owner->fn.locals, dupSymbol(var));
+                        break;
+                    case SK_STRUCT:
+                        var->varIdx = typeSize(&owner->type);
+                        addSymbolToList(&owner->structMembers, dupSymbol(var));
+                        break;
+                    }
+                }
+                else {
+                    var->varMem = safeAlloc(typeSize(&t));
+                }
                 return true;
             }
             else
@@ -85,11 +129,22 @@ bool varDef() {
     iTk = start;
     return false;
 }
+
+
 bool structDef() {
     Token* start = iTk;
     if (consume(STRUCT)) {
         if (consume(ID)) {
+            Token* tkName = consumedTk;
             if (consume(LACC)) {
+                Symbol* s = findSymbolInDomain(symTable, tkName->text);
+                if (s)tkerr("symbol redefinition: %s", tkName->text);
+                s = addSymbolToDomain(symTable, newSymbol(tkName->text, SK_STRUCT));
+                s->type.tb = TB_STRUCT;
+                s->type.s = s;
+                s->type.n = -1;
+                pushDomain();
+                owner = s;
                 for (;;) {
                     if (varDef()) {}
                     else {
@@ -98,6 +153,8 @@ bool structDef() {
                 }
                 if (consume(RACC)) {
                     if (consume(SEMICOLON)) {
+                        owner = NULL;
+                        dropDomain;
                         return true;
                     }
                     else
@@ -139,8 +196,9 @@ bool exprUnary() {
 bool exprCast() {
     Token* start = iTk;
     if (consume(LPAR)) {
-        if (typeBase()) {
-            if (arrayDecl()) {}
+        Type t;
+        if (typeBase(&t)) {
+            if (arrayDecl(&t)) {}
             if (consume(RPAR)) {
                 if (exprCast()) {
                     return true;
@@ -460,7 +518,7 @@ bool expr() {
 
 bool stm() {
     Token* start = iTk;
-    if (stmCompound()) {
+    if (stmCompound(true)) {
         return true;
     }
     if (consume(IF)) {
@@ -517,10 +575,11 @@ bool stm() {
     iTk = start;
     return false;
 }
-bool stmCompound() {
+bool stmCompound(bool newDomain) {
     Token* start = iTk;
     if (consume(LACC)) {
-
+        if (newDomain)
+            pushDomain();
         for (;;) {
             if (varDef()) {}
             else if (stm()) {}
@@ -528,6 +587,8 @@ bool stmCompound() {
                 break;
         }
         if (consume(RACC)) {
+            if (newDomain)
+                dropDomain();
             return true;
         }
         else
@@ -537,10 +598,21 @@ bool stmCompound() {
     return false;
 }
 bool fnParam() {
+    Type t;
     Token* start = iTk;
-    if (typeBase()) {
+    if (typeBase(&t)) {
         if (consume(ID)) {
-            if (arrayDecl()) {}
+            Token* tkName = consumedTk;
+            if (arrayDecl(&t)) { t.n = 0; }
+            Symbol* param = findSymbolInDomain(symTable, tkName->text);
+            if (param)tkerr("symbol redefinition: %s", tkName->text);
+            param = newSymbol(tkName->text, SK_PARAM);
+            param->type = t;
+            param->owner = owner;
+            param->paramIdx = symbolsLen(owner->fn.params);
+            //the parameter is added to the current domain and to the function parameters
+            addSymbolToDomain(symTable, param);
+            addSymbolToList(&owner->fn.params, dupSymbol(param));
             return true;
         }
         else
@@ -550,10 +622,19 @@ bool fnParam() {
     return false;
 }
 bool fnDef() {
+    Type t;
     Token* start = iTk;
-    if (typeBase()) {
+    if (typeBase(&t)) {
         if (consume(ID)) {
+            Token* tkName = consumedTk;
             if (consume(LPAR)) {
+                Symbol* fn = findSymbolInDomain(symTable, tkName->text);
+                if (fn)tkerr("symbol redefinition: %s", tkName->text);
+                fn = newSymbol(tkName->text, SK_FN);
+                fn->type = t;
+                addSymbolToDomain(symTable, fn);
+                owner = fn;
+                pushDomain();
                 if (fnParam()) {
                     for (;;) {
                         if (consume(COMMA)) {
@@ -565,8 +646,12 @@ bool fnDef() {
                     }
                 }
                 if (consume(RPAR)) {
-                    if (stmCompound()) {
+                    if (stmCompound(false)) {
                         return true;
+                    }
+                    else {
+                        dropDomain();
+                        owner = NULL;
                     }
                 }
                 else
@@ -577,6 +662,7 @@ bool fnDef() {
             tkerr("Missing function name");
     }
     if (consume(VOID)) {
+        t.tb = TB_VOID;
         if (consume(ID)) {
             if (consume(LPAR)) {
                 if (fnParam()) {
@@ -590,7 +676,7 @@ bool fnDef() {
                     }
                 }
                 if (consume(RPAR)) {
-                    if (stmCompound()) {
+                    if (stmCompound(false)) {
                         return true;
                     }
                 }

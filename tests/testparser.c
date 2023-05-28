@@ -12,7 +12,7 @@ double max(double a, double b)
 		return b;
 }
 
-int len(char s[)
+int len(char s[1)
 {
 	int i;
 	i = 0;
