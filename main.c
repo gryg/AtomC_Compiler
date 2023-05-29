@@ -4,10 +4,11 @@
 #include "utils.c"
 #include "parser.c"
 #include "ad.c"
+#include "at.h"
 
 int main()
 {
-    char* inbuf = loadFile("tests/testad.c");
+    char* inbuf = loadFile("tests/testat.c");
     // puts(inbuf);
 
     puts(inbuf);

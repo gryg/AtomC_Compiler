@@ -1,19 +1,20 @@
-struct S{
+struct S {
 	int n;
 	char text[16];
-	};
-	
+	char a;
+};
+
 struct S a;
 struct S v[10];
 
-void f(char text[],int i,char ch){
-	text[i]=ch;
-	}
+void f(char text[], int i, char ch) {
+	text[i] = ch;
+}
 
-int h(int x,int y){
-	if(x>0&&x<y){
-		f(v[x].text,y,'#');
+int h(int x, int y) {
+	if (x > 0 && x < y) {
+		f(v[x].text, y, '#');
 		return 1;
-		}
-	return 0;
 	}
+	return 0;
+}
