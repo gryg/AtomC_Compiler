@@ -1,7 +1,6 @@
 struct S {
 	int n;
 	char text[16];
-	char a;
 };
 
 struct S a;
@@ -12,7 +11,7 @@ void f(char text[], int i, char ch) {
 }
 
 int h(int x, int y) {
-	if (x > 0 && x < y) {
+	if (x < 0 && x < y) {
 		f(v[x].text, y, '#');
 		return 1;
 	}

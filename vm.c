@@ -103,9 +103,17 @@ void put_i(){
 	printf("=> %d",popi());
 	}
 
+void put_d(){
+	printf("=> %g",popf());
+	}
+
 void vmInit(){
 	Symbol *fn=addExtFn("put_i",put_i,(Type){TB_VOID,NULL,-1});
 	addFnParam(fn,"i",(Type){TB_INT,NULL,-1});
+	}
+void vmInitD(){
+	Symbol *fn=addExtFn("put_d",put_d,(Type){TB_VOID,NULL,-1});
+	addFnParam(fn,"d",(Type){TB_DOUBLE,NULL,-1});
 	}
 
 void run(Instr *IP){
@@ -116,7 +124,7 @@ void run(Instr *IP){
 	void(*extFnPtr)();
 	for(;;){
 		// shows the index of the current instruction and the number of values from stack
-		printf("%p/%d\t",IP,(int)(SP-stack+1));
+		printf("%p/%d\t",IP,(float)(SP-stack+1));
 		switch(IP->op){
 			case OP_HALT:
 				printf("HALT");
@@ -186,6 +194,21 @@ void run(Instr *IP){
 				printf("LESS.i\t// %d<%d -> %d",iBefore,iTop,iBefore<iTop);
 				IP=IP->next;
 				break;
+			case OP_ADD_F:
+				fTop=popf();
+				fTop+=popf();
+				pushf(fTop);
+				printf("ADD.f\t// %g+%g -> %g",fTop,popf(),fTop);
+				IP=IP->next;
+				break;
+			case OP_LESS_F:
+				fTop=popf();
+				fTop=popf()<fTop;
+				pushf(fTop);
+				printf("LESS.f\t// %g<%g -> %g",popf(),fTop,fTop);
+				IP=IP->next;
+				break;
+			
 
 			// added for code generation
 			case OP_CONV_F_I:
@@ -290,6 +313,47 @@ Instr *genTestProgram(){
 	addInstrWithInt(&code,OP_FPLOAD,1);
 	addInstrWithInt(&code,OP_PUSH_I,1);
 	addInstr(&code,OP_ADD_I);
+	addInstrWithInt(&code,OP_FPSTORE,1);
+	// } ( the next iteration)
+	addInstr(&code,OP_JMP)->arg.instr=whilePos;
+	// returns from function
+	jfAfter->arg.instr=addInstrWithInt(&code,OP_RET_VOID,1);
+	return code;
+	}
+
+/* The program implements the following AtomC source code:
+f(2.0);
+void f(double n){		// stack frame: n[-2] ret[-1] oldFP[0] i[1]
+	int i=0;
+	while(i<n){
+		put_d(i);
+		i=i+0.5;
+		}
+	}
+*/
+Instr *genTestProgram2(){
+	Instr *code=NULL;
+	addInstrWithDouble(&code,OP_PUSH_F,2.0);
+	Instr *callPos=addInstr(&code,OP_CALL);
+	addInstr(&code,OP_HALT);
+	callPos->arg.instr=addInstrWithInt(&code,OP_ENTER,1);
+	// int i=0;
+	addInstrWithInt(&code,OP_PUSH_I,0);
+	addInstrWithInt(&code,OP_FPSTORE,1);
+	// while(i<n){
+	Instr *whilePos=addInstrWithInt(&code,OP_FPLOAD,1);
+	addInstrWithInt(&code,OP_FPLOAD,-2);
+	addInstr(&code,OP_LESS_F);
+	Instr *jfAfter=addInstr(&code,OP_JF);
+	// put_d(i);
+	addInstrWithInt(&code,OP_FPLOAD,1);
+	Symbol *s=findSymbol("put_d");
+	if(!s)err("undefined: put_d");
+	addInstr(&code,OP_CALL_EXT)->arg.extFnPtr=s->fn.extFnPtr;
+	// i=i+0.5;
+	addInstrWithInt(&code,OP_FPLOAD,1);
+	addInstrWithDouble(&code,OP_PUSH_F,0.5);
+	addInstr(&code,OP_ADD_F);
 	addInstrWithInt(&code,OP_FPSTORE,1);
 	// } ( the next iteration)
 	addInstr(&code,OP_JMP)->arg.instr=whilePos;

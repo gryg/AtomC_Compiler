@@ -3,8 +3,10 @@
 #include "lexer.c"
 #include "utils.c"
 #include "parser.c"
+// #include "ad.c"
+// #include "at.h"
+#include "at.c"
 #include "ad.c"
-#include "at.h"
 
 int main()
 {

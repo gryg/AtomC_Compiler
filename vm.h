@@ -30,6 +30,7 @@ typedef enum{
 	,OP_ADD_I			// adds 2 int values from stack and puts the result on stack
 	,OP_LESS_I			// compares 2 int values from stack and puts the result on stack as int
 
+	
 	// added instructions for code generation
 	,OP_PUSH_F		// [ct.f] puts on stack the constant ct.f
 	,OP_CONV_F_I	// converts the stack value from double to int
@@ -92,6 +93,7 @@ Instr *addInstrWithDouble(Instr **list,Opcode op,double argVal);
 
 // MV initialisation
 void vmInit();
+void vmInitD();
 
 // executes the code starting with the given instruction (IP - Instruction Pointer)
 void run(Instr *IP);
