@@ -4,6 +4,8 @@
 #include "ad.h"
 #include "utils.h"
 #include "at.h"
+#include "gc.h"
+#include "vm.h"
 
 Token* iTk;
 Token* consumedTk;

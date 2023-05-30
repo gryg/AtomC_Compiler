@@ -112,9 +112,13 @@ void vmInit(){
 	addFnParam(fn,"i",(Type){TB_INT,NULL,-1});
 	}
 void vmInitD(){
-	Symbol *fn=addExtFn("put_d",put_d,(Type){TB_VOID,NULL,-1});
-	addFnParam(fn,"d",(Type){TB_DOUBLE,NULL,-1});
-	}
+    Symbol *fn_i = addExtFn("put_i", put_i, (Type){TB_VOID, NULL, -1});
+    addFnParam(fn_i, "i", (Type){TB_INT, NULL, -1});
+
+    Symbol *fn_f = addExtFn("put_d", put_d, (Type){TB_VOID, NULL, -1});
+    addFnParam(fn_f, "d", (Type){TB_DOUBLE, NULL, -1});
+}
+
 
 void run(Instr *IP){
 	Val v;
@@ -290,6 +294,7 @@ void f(int n){		// stack frame: n[-2] ret[-1] oldFP[0] i[1]
 		}
 	}
 */
+
 Instr *genTestProgram(){
 	Instr *code=NULL;
 	addInstrWithInt(&code,OP_PUSH_I,2);
@@ -331,33 +336,66 @@ void f(double n){		// stack frame: n[-2] ret[-1] oldFP[0] i[1]
 		}
 	}
 */
+
 Instr *genTestProgram2(){
-	Instr *code=NULL;
-	addInstrWithDouble(&code,OP_PUSH_F,2.0);
-	Instr *callPos=addInstr(&code,OP_CALL);
-	addInstr(&code,OP_HALT);
-	callPos->arg.instr=addInstrWithInt(&code,OP_ENTER,1);
-	// int i=0;
-	addInstrWithInt(&code,OP_PUSH_I,0);
-	addInstrWithInt(&code,OP_FPSTORE,1);
-	// while(i<n){
-	Instr *whilePos=addInstrWithInt(&code,OP_FPLOAD,1);
-	addInstrWithInt(&code,OP_FPLOAD,-2);
-	addInstr(&code,OP_LESS_F);
-	Instr *jfAfter=addInstr(&code,OP_JF);
-	// put_d(i);
-	addInstrWithInt(&code,OP_FPLOAD,1);
-	Symbol *s=findSymbol("put_d");
-	if(!s)err("undefined: put_d");
-	addInstr(&code,OP_CALL_EXT)->arg.extFnPtr=s->fn.extFnPtr;
-	// i=i+0.5;
-	addInstrWithInt(&code,OP_FPLOAD,1);
-	addInstrWithDouble(&code,OP_PUSH_F,0.5);
-	addInstr(&code,OP_ADD_F);
-	addInstrWithInt(&code,OP_FPSTORE,1);
-	// } ( the next iteration)
-	addInstr(&code,OP_JMP)->arg.instr=whilePos;
-	// returns from function
-	jfAfter->arg.instr=addInstrWithInt(&code,OP_RET_VOID,1);
-	return code;
-	}
+    Instr *code = NULL;
+    addInstrWithDouble(&code, OP_PUSH_F, 2.0);
+    Instr *callPos = addInstr(&code, OP_CALL);
+    addInstr(&code, OP_HALT);
+    callPos->arg.instr = addInstrWithInt(&code, OP_ENTER, 1);
+    // int i = 0;
+    addInstrWithInt(&code, OP_PUSH_I, 0);
+    addInstrWithInt(&code, OP_FPSTORE, 1);
+    // while(i < n) {
+    Instr *whilePos = addInstrWithInt(&code, OP_FPLOAD, 1);
+    addInstrWithInt(&code, OP_FPLOAD, -2);
+    addInstr(&code, OP_LESS_F);
+    Instr *jfAfter = addInstr(&code, OP_JF);
+    // put_d(i);
+    addInstrWithInt(&code, OP_FPLOAD, 1);
+    Symbol *s = findSymbol("put_d");
+    if (!s) err("undefined: put_d");
+    addInstr(&code, OP_CALL_EXT)->arg.extFnPtr = s->fn.extFnPtr;
+    // i = i + 0.5;
+    addInstrWithInt(&code, OP_FPLOAD, 1);
+    addInstrWithDouble(&code, OP_PUSH_F, 0.5);
+    addInstr(&code, OP_ADD_F);
+    addInstrWithInt(&code, OP_FPSTORE, 1);
+    // } (the next iteration)
+    addInstr(&code, OP_JMP)->arg.instr = whilePos;
+    // returns from function
+    jfAfter->arg.instr = addInstrWithInt(&code, OP_RET_VOID, 1);
+    return code;
+}
+
+
+// Instr *genTestProgram2(){
+// 	Instr *code=NULL;
+// 	addInstrWithDouble(&code,OP_PUSH_F,2.0);
+// 	Instr *callPos=addInstr(&code,OP_CALL);
+// 	addInstr(&code,OP_HALT);
+// 	callPos->arg.instr=addInstrWithInt(&code,OP_ENTER,1);
+// 	// int i=0;
+// 	addInstrWithInt(&code,OP_PUSH_I,0);
+// 	addInstrWithInt(&code,OP_FPSTORE,1);
+// 	// while(i<n){
+// 	Instr *whilePos=addInstrWithInt(&code,OP_FPLOAD,1);
+// 	addInstrWithInt(&code,OP_FPLOAD,-2);
+// 	addInstr(&code,OP_LESS_F);
+// 	Instr *jfAfter=addInstr(&code,OP_JF);
+// 	// put_d(i);
+// 	addInstrWithInt(&code,OP_FPLOAD,1);
+// 	Symbol *s=findSymbol("put_d");
+// 	if(!s)err("undefined: put_d");
+// 	addInstr(&code,OP_CALL_EXT)->arg.extFnPtr=s->fn.extFnPtr;
+// 	// i=i+0.5;
+// 	addInstrWithInt(&code,OP_FPLOAD,1);
+// 	addInstrWithDouble(&code,OP_PUSH_F,0.5);
+// 	addInstr(&code,OP_ADD_F);
+// 	addInstrWithInt(&code,OP_FPSTORE,1);
+// 	// } ( the next iteration)
+// 	addInstr(&code,OP_JMP)->arg.instr=whilePos;
+// 	// returns from function
+// 	jfAfter->arg.instr=addInstrWithInt(&code,OP_RET_VOID,1);
+// 	return code;
+// 	}

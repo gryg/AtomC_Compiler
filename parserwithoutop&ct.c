@@ -4,9 +4,7 @@
 #include <stdbool.h>
 
 #include "parser.h"
-#include "gc.c"
-// #include "gc.h"
-#include "vm.h"
+// #include "gc.c"
 
 void tkerr(const char* fmt, ...) {
     fprintf(stderr, "error in line %d: ", iTk->line);
@@ -552,8 +550,8 @@ bool exprEq(Ret* r) {
 
 bool exprRelPrim(Ret* r) {
     Token* start = iTk;
-    if (consume(LESS)) {
-        Token* op = consumedTk;  // LESS[op]
+    Token* op;
+    if (consume(LESS[op])) {
         Ret right;
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
@@ -584,8 +582,7 @@ bool exprRelPrim(Ret* r) {
         }
         else tkerr("Invalid expression after less symbol");
     }
-    if (consume(LESSEQ)) {
-        Token* op = consumedTk;  //LESS[op]
+    if (consume(LESSEQ[op])) {
         Ret right;
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
@@ -616,8 +613,7 @@ bool exprRelPrim(Ret* r) {
         }
         else tkerr("Invalid expression after less than equal symbol");
     }
-    if (consume(GREATER)) {
-        Token* op = consumedTk;  //LESS[op]
+    if (consume(GREATER[op])) {
         Ret right;
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
@@ -648,8 +644,7 @@ bool exprRelPrim(Ret* r) {
         }
         else tkerr("Invalid expression after greater symbol");
     }
-    if (consume(GREATEREQ)) {
-        Token* op = consumedTk;
+    if (consume(GREATEREQ[op])) {
         Ret right;
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
@@ -698,8 +693,8 @@ bool exprRel(Ret* r) {
 
 bool exprAddPrim(Ret* r) {
     Token* start = iTk;
-    if (consume(ADD)) {
-        Token* op = consumedTk;
+    Token* op;
+    if (consume(ADD[op])) {
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
         Ret right;
@@ -734,8 +729,7 @@ bool exprAddPrim(Ret* r) {
         }
         else tkerr("Invalid expression after + ");
     }
-    if (consume(SUB)) {
-        Token* op = consumedTk;
+    if (consume(SUB[op])) {
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
         Ret right;
@@ -787,9 +781,9 @@ bool exprAdd(Ret* r) {
 }
 
 bool exprMulPrim(Ret* r) {
+    Token* op;
     Token* start = iTk;
-    if (consume(MUL)) {
-        Token* op = consumedTk;
+    if (consume(MUL[op])) {
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
         Ret right;
@@ -824,8 +818,7 @@ bool exprMulPrim(Ret* r) {
         }
         else tkerr("Invalid expression after * symbol");
     }
-    if (consume(DIV)) {
-        Token* op;
+    if (consume(DIV[op])) {
         Ret right;
         Instr* lastLeft = lastInstr(owner->fn.instr);
         addRVal(&owner->fn.instr, r->lval, &r->type);
@@ -1059,8 +1052,7 @@ bool exprPrimary(Ret* r) {
         };
         return true;
     }
-    if (consume(INT)) {
-        Token* ct = consumedTk;
+    if (consume(INT[&ct])) {
         addInstrWithInt(&owner->fn.instr, OP_PUSH_I, ct->i);
         *r = (Ret){
             {
@@ -1071,8 +1063,7 @@ bool exprPrimary(Ret* r) {
         };
         return true;
     }
-    if (consume(DOUBLE)) {
-        Token* ct = consumedTk;
+    if (consume(DOUBLE[&ct])) {
         addInstrWithDouble(&owner->fn.instr, OP_PUSH_F, ct->d);
         *r = (Ret){
             {
@@ -1083,8 +1074,7 @@ bool exprPrimary(Ret* r) {
         };
         return true;
     }
-    if (consume(CHAR)) {
-        Token* ct = consumedTk;
+    if (consume(CHAR[&ct])) {
         *r = (Ret){
             {
                 TB_CHAR,
@@ -1094,8 +1084,7 @@ bool exprPrimary(Ret* r) {
         };
         return true;
     }
-    if (consume(STRING)) {
-        Token* ct = consumedTk;
+    if (consume(STRING[&ct])) {
         *r = (Ret){
             {
                 TB_CHAR,
